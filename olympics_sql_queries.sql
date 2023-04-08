@@ -35,5 +35,28 @@ t2 as (
 select * from t2 where athlete_rank <= 5;
 
 
+-- List down total gold, silver and broze medals won by each country.
+select * from athlete_events ae where medal <> 'NA'
+
+select onr.region as country, medal, count(1) as total_medals
+from athlete_events ae 
+join olympics_noc_regions onr on ae.noc = onr.noc 
+where medal <> 'NA'
+group by country, medal
+order by country, medal
+
+create extension tablefunc; -- to use crosstab function
+
+select country, coalesce(gold, 0) as gold, coalesce (silver,0) as silver, coalesce (bronze, 0) as bronze
+from crosstab('select onr.region as country, medal, count(1) as total_medals
+from athlete_events ae 
+join olympics_noc_regions onr on ae.noc = onr.noc 
+where medal <> ''NA''
+group by country, medal
+order by country, medal', 'values(''Bronze''),(''Gold''),(''Silver'')') 
+as result(country varchar, bronze bigint, gold bigint, silver bigint)
+order by gold desc, silver desc, bronze desc;
+
+
 
 
