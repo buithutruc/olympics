@@ -58,5 +58,28 @@ as result(country varchar, bronze bigint, gold bigint, silver bigint)
 order by gold desc, silver desc, bronze desc;
 
 
+-- Identify which country won the most gold, most silver and most bronze medals in each olympic games.
+with temp as (select substring(games_country, 1, position(' - ' in games_country) - 1) as games,
+substring(games_country, position(' - ' in games_country) + 3) as country,
+coalesce(gold, 0) as gold, 
+coalesce (silver,0) as silver, 
+coalesce (bronze, 0) as bronze
+from crosstab('select concat(games, '' - '', onr.region) as games_country, medal, count(1) as total_medals
+from athlete_events ae 
+join olympics_noc_regions onr on ae.noc = onr.noc 
+where medal <> ''NA''
+group by games, onr.region, medal
+order by games, onr.region, medal', 'values(''Bronze''),(''Gold''),(''Silver'')') 
+as result(games_country varchar, bronze bigint, gold bigint, silver bigint)
+order by games_country)
+
+select distinct games,
+concat(first_value(country) over(partition by games order by gold desc), ' - ',first_value(gold) over(partition by games order by gold desc)) as gold,
+concat(first_value(country) over(partition by games order by silver desc), ' - ',first_value(silver) over(partition by games order by silver desc)) as silver,
+concat(first_value(country) over(partition by games order by bronze desc), ' - ',first_value(bronze) over(partition by games order by bronze desc)) as bronze
+from temp
+order by games;
+
+
 
 
